@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Message {
+  id           String   @id @default(uuid())
+  file_url     String?
+  ack          Int
+  message_id   String
+  message_body String
+  sender       String
+  destiny      String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@map("message")
+}
