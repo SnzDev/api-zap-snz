@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
 }
 
 datasource db {
@@ -8,15 +9,36 @@ datasource db {
 }
 
 model Message {
-  id           String   @id @default(uuid())
-  file_url     String?
-  ack          Int
-  message_id   String
-  message_body String
-  sender       String
-  destiny      String
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  id            String   @id @default(uuid())
+  line          Line     @relation(fields: [acess_key], references: [id])
+  acess_key     String
+  file_url      String?
+  ack           Int
+  message_id    String
+  message_body  String
+  sender        String
+  destiny       String
+  is_survey     Boolean?
+  first_option  String?
+  first_answer  String?
+  second_option String?
+  second_answer String?
+  response      String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 
   @@map("message")
+}
+
+model Line {
+  id           String    @id @default(uuid())
+  phone_number String
+  port         Int
+  name         String
+  observation  String?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  Message      Message[]
+
+  @@map("line")
 }
