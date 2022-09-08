@@ -1,15 +1,33 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { Buttons, Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
 import { GlobalService } from 'src/services/global/global.service';
 import { ISendMessage, ISendMessageSurvey } from './dto/types';
 import { MessageService } from 'src/services/message/message.service';
+import { QrCodeGateway } from 'src/qr-code.gateway';
 
 @Controller('whatsapp/v1')
 export class WhatsappController {
-  constructor(private messageService: MessageService) {}
+  constructor(
+    private messageService: MessageService,
+    private qrCodeGateway: QrCodeGateway,
+  ) {}
 
   @Post('init')
   async createInstance() {
+    if (GlobalService.instancesWhatsapp)
+      throw new HttpException(
+        'CLIENT ALREADY STARTED!',
+        HttpStatus.BAD_REQUEST,
+      );
     const client = new Client({
       authStrategy: new LocalAuth({}),
       puppeteer: { headless: false },
@@ -18,10 +36,22 @@ export class WhatsappController {
 
     client.on('qr', (qr) => {
       console.log(qr);
+      const socketQrCode = GlobalService.instancesSocketQrCode;
+
+      if (!socketQrCode) return null;
+      this.qrCodeGateway.sendQrCode(socketQrCode, qr);
     });
 
     client.on('authenticated', () => {
       console.log('AUTHENTICATED');
+      const socketQrCode = GlobalService.instancesSocketQrCode;
+      this.qrCodeGateway.sendConnected(socketQrCode);
+      GlobalService.instancesSocketQrCode = null;
+    });
+
+    client.on('disconnected', (reason) => {
+      console.log(`Disconnected Whats: ${reason}`);
+      GlobalService.instancesWhatsapp = null;
     });
 
     client.on('ready', () => {
@@ -72,12 +102,24 @@ export class WhatsappController {
 
   @Post('/destroy')
   async clearInstance(@Body() body: { sessionId: string }) {
+    const status = await GlobalService?.instancesWhatsapp;
+    if (!status)
+      throw new HttpException(
+        'CLIENT ALREADY DISCONNECTED!',
+        HttpStatus.BAD_REQUEST,
+      );
+
     const response = await GlobalService.instancesWhatsapp.client.destroy();
+    GlobalService.instancesWhatsapp = null;
     console.log('destroyed', response);
   }
 
   @Post('/send/message')
   async sendMessage(@Req() req, @Body() body: ISendMessage) {
+    const status = await GlobalService?.instancesWhatsapp;
+    if (!status)
+      throw new HttpException('CLIENT DISCONNECTED!', HttpStatus.BAD_REQUEST);
+
     const { message, file_url } = body;
     const media = file_url && (await MessageMedia.fromUrl(file_url));
     const phone_number = `${body.phone_number}@c.us`;
@@ -118,6 +160,10 @@ export class WhatsappController {
 
   @Post('/send/message-survey')
   async sendMessageSurvey(@Req() req, @Body() body: ISendMessageSurvey) {
+    const status = await GlobalService?.instancesWhatsapp;
+    if (!status)
+      throw new HttpException('CLIENT DISCONNECTED!', HttpStatus.BAD_REQUEST);
+
     const {
       message,
       first_option,
@@ -155,22 +201,32 @@ export class WhatsappController {
 
   @Get('/status')
   async getStatus() {
+    const status = await GlobalService?.instancesWhatsapp;
+    if (!status)
+      throw new HttpException('CLIENT DISCONNECTED!', HttpStatus.BAD_REQUEST);
+
     const response = await GlobalService?.instancesWhatsapp?.client.getState();
 
-    return { status: response || 'NOT_STARTED' };
+    return { status: response };
   }
   @Get('/check/contact/:number')
   async numberExists(@Param('number') number) {
+    const status = await GlobalService?.instancesWhatsapp;
+    if (!status)
+      throw new HttpException('CLIENT DISCONNECTED!', HttpStatus.BAD_REQUEST);
+
     const response = await GlobalService?.instancesWhatsapp?.client.getNumberId(
       number,
     );
-    const status = await GlobalService?.instancesWhatsapp?.client.getState();
-    if (!status) return { exists: 'NOT_STARTED' };
+
     return { exists: !!response };
   }
 
   @Get('/check/message/:id')
   async messageStatus(@Param('id') id) {
+    const status = await GlobalService?.instancesWhatsapp;
+    if (!status)
+      throw new HttpException('CLIENT DISCONNECTED!', HttpStatus.BAD_REQUEST);
     const response = await this.messageService.findById(id);
     return response;
   }

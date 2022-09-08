@@ -3,9 +3,10 @@ import { VerifyKeyMiddleware } from 'src/middlewares/verify-key.middleware';
 import { MessageService } from '../../services/message/message.service';
 import { LinesService } from '../../services/lines/lines.service';
 import { WhatsappController } from './whatsapp.controller';
+import { QrCodeGateway } from 'src/qr-code.gateway';
 @Module({
   controllers: [WhatsappController],
-  providers: [MessageService, LinesService],
+  providers: [MessageService, LinesService, QrCodeGateway],
 })
 export class WhatsappModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
