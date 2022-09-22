@@ -120,17 +120,16 @@ export class WhatsappController {
     if (!status)
       throw new HttpException('CLIENT DISCONNECTED!', HttpStatus.BAD_REQUEST);
 
-    const { message, file_url } = body;
+    const { message, file_url, phone_number } = body;
+
     const media = file_url && (await MessageMedia.fromUrl(file_url));
-    const phone_number = `${body.phone_number}@c.us`;
+    const phone = `${phone_number}@c.us`;
 
     if (file_url) {
       const responseImg =
-        await GlobalService.instancesWhatsapp.client.sendMessage(
-          phone_number,
-          media,
-          { caption: message },
-        );
+        await GlobalService.instancesWhatsapp.client.sendMessage(phone, media, {
+          caption: message,
+        });
       return await this.messageService.createMessage({
         file_url: file_url,
         ack: responseImg.ack,
@@ -142,10 +141,7 @@ export class WhatsappController {
       });
     }
     const responseMsg =
-      await GlobalService.instancesWhatsapp.client.sendMessage(
-        phone_number,
-        message,
-      );
+      await GlobalService.instancesWhatsapp.client.sendMessage(phone, message);
 
     return await this.messageService.createMessage({
       file_url: file_url,

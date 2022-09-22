@@ -30,10 +30,10 @@ export class QrCodeGateway
   }
 
   sendQrCode(client: Socket, qrCode: string) {
-    client.emit('qrCode', qrCode);
+    client && client.emit('qrCode', qrCode);
   }
   sendConnected(client: Socket) {
-    client.emit('connected', { connected: true });
+    client && client.emit('connected', { connected: true });
   }
 
   // Para receber mensagem

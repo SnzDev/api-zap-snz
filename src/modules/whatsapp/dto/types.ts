@@ -10,7 +10,7 @@ export class IButton {
 }
 
 export class ISendMessage {
-  phone_number: string;
+  phone_number?: string;
   message: string;
   file_url?: string;
 }
