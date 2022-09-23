@@ -13,12 +13,14 @@ import { GlobalService } from 'src/services/global/global.service';
 import { ISendMessage, ISendMessageSurvey } from './dto/types';
 import { MessageService } from 'src/services/message/message.service';
 import { QrCodeGateway } from 'src/qr-code.gateway';
+import { WebHookService } from '../../services/webhook/webhook.service';
 
 @Controller('whatsapp/v1')
 export class WhatsappController {
   constructor(
     private messageService: MessageService,
     private qrCodeGateway: QrCodeGateway,
+    private webhookService: WebHookService,
   ) {}
 
   @Post('init')
@@ -67,8 +69,18 @@ export class WhatsappController {
       );
 
       if (existsMessageId) {
-        await this.messageService.updateStatus(existsMessageId.id, ack);
-        console.log('Updated Message');
+        const response = await this.messageService.updateStatus(
+          existsMessageId.id,
+          ack,
+        );
+        console.log(`Updated From: ${response.destiny}`);
+
+        if (!response.line.webhook_url) return;
+
+        const responseWebhook = await this.webhookService.sendWebhook(response);
+
+        console.log(responseWebhook);
+        console.log(`Webhook Send: ${response.destiny}`);
       }
     });
 
@@ -91,13 +103,31 @@ export class WhatsappController {
       }
 
       if (msg.selectedButtonId === 'first_option') {
-        await this.messageService.updateResponse(existsMessageId.id, msg.body);
-        return client.sendMessage(msg.from, existsMessageId.first_answer);
+        const response = await this.messageService.updateResponse(
+          existsMessageId.id,
+          msg.body,
+        );
+
+        client.sendMessage(msg.from, existsMessageId.first_answer);
+
+        if (!response.line.webhook_url) return;
+        this.webhookService.sendWebhook(response);
+
+        return console.log(`Webhook Send: ${response.destiny}`);
       }
 
-      if (msg.selectedButtonId === 'second_option')
-        await this.messageService.updateResponse(existsMessageId.id, msg.body);
-      return client.sendMessage(msg.from, existsMessageId.second_answer);
+      if (msg.selectedButtonId === 'second_option') {
+        const response = await this.messageService.updateResponse(
+          existsMessageId.id,
+          msg.body,
+        );
+        client.sendMessage(msg.from, existsMessageId.second_answer);
+
+        if (!response.line.webhook_url) return;
+        this.webhookService.sendWebhook(response);
+
+        return console.log(`Webhook Send: ${response.destiny}`);
+      }
     });
 
     client.initialize();

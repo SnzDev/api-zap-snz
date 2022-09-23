@@ -39,6 +39,7 @@ export class MessageService {
     const response = await this.message.update({
       data: { ack },
       where: { id },
+      include: { line: true },
     });
     return response;
   }
@@ -47,6 +48,7 @@ export class MessageService {
     const response = await this.message.update({
       data: { response: data },
       where: { id },
+      include: { line: true },
     });
     return response;
   }

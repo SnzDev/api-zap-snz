@@ -4,13 +4,19 @@ export class CreateLine
   implements
     Omit<
       Line,
-      'created_at' | 'updated_at' | 'id' | 'access_key' | 'observation'
+      | 'created_at'
+      | 'updated_at'
+      | 'id'
+      | 'access_key'
+      | 'observation'
+      | 'webhook_url'
     >
 {
   name: string;
   phone_number: string;
   observation?: string;
   port: number;
+  webhook_url?: string;
 }
 
 export class UpdateLine
@@ -24,4 +30,5 @@ export class UpdateLine
   phone_number: string;
   observation?: string;
   port: number;
+  webhook_url: string;
 }

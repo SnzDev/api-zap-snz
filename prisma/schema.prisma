@@ -38,6 +38,7 @@ model Line {
   observation  String?
   created_at   DateTime  @default(now())
   updated_at   DateTime  @updatedAt
+  webhook_url  String?
   Message      Message[]
 
   @@map("line")
