@@ -30,7 +30,10 @@ export class WhatsappController {
       );
     const client = new Client({
       authStrategy: new LocalAuth({}),
-      puppeteer: { headless: false },
+      puppeteer: {
+        headless: true,
+        args: ['--no-sandbox'],
+      },
     });
     GlobalService.instancesWhatsapp = { client };
 

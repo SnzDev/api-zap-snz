@@ -1,0 +1,5 @@
+apps:
+  - name: API-ZAP-TESTE
+    script: npx nest start
+    exec_mode: fork
+    instances: 1
