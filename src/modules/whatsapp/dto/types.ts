@@ -22,4 +22,5 @@ export class ISendMessageSurvey implements ISendMessage {
   first_answer: string;
   second_option: string;
   second_answer: string;
+  file_url?: string;
 }

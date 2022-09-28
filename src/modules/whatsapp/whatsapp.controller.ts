@@ -77,9 +77,8 @@ export class WhatsappController {
 
         if (!response.line.webhook_url) return;
 
-        const responseWebhook = await this.webhookService.sendWebhook(response);
+        await this.webhookService.sendWebhook(response);
 
-        console.log(responseWebhook);
         console.log(`Webhook Send: ${response.destiny}`);
       }
     });
@@ -155,10 +154,10 @@ export class WhatsappController {
 
     const { message, file_url, phone_number } = body;
 
-    const media = file_url && (await MessageMedia.fromUrl(file_url));
     const phone = `${phone_number}@c.us`;
 
     if (file_url) {
+      const media = await MessageMedia.fromUrl(file_url);
       const responseImg =
         await GlobalService.instancesWhatsapp.client.sendMessage(phone, media, {
           caption: message,
@@ -199,6 +198,7 @@ export class WhatsappController {
       first_answer,
       second_option,
       second_answer,
+      file_url,
     } = body;
     const phone_number = `${body.phone_number}@c.us`;
 
@@ -206,6 +206,14 @@ export class WhatsappController {
       { id: 'first_option', body: first_option },
       { id: 'second_option', body: second_option },
     ]);
+
+    if (file_url) {
+      const media = await MessageMedia.fromUrl(file_url);
+      await GlobalService.instancesWhatsapp.client.sendMessage(
+        phone_number,
+        media,
+      );
+    }
 
     const responseMsg =
       await GlobalService.instancesWhatsapp.client.sendMessage(
@@ -219,6 +227,7 @@ export class WhatsappController {
       message_body: message,
       message_id: responseMsg.id.id,
       sender: responseMsg.from,
+      file_url,
       first_option,
       first_answer,
       second_option,
