@@ -90,7 +90,6 @@ export class WhatsappController {
       const existsMessageId = await this.messageService.findMessageByMessageId(
         idMessage,
       );
-      console.log(existsMessageId);
 
       if (!existsMessageId) return;
 
