@@ -257,6 +257,10 @@ export class WhatsappController {
     if (!status)
       throw new HttpException('CLIENT DISCONNECTED!', HttpStatus.BAD_REQUEST);
     const response = await this.messageService.findById(id);
-    return response;
+    return {
+      ...response,
+      updated_at: new Date(response.updated_at).getTime(),
+      created_at: new Date(response.created_at).getTime(),
+    };
   }
 }

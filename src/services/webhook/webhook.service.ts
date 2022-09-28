@@ -13,6 +13,8 @@ export class WebHookService {
         {
           ...data,
           line: undefined,
+          updated_at: new Date(data.updated_at).getTime(),
+          created_at: new Date(data.created_at).getTime(),
         },
       );
 
