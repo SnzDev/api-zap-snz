@@ -1,32 +1,17 @@
-FROM node:16.14.2-alpine AS development
+FROM node:17-slim
 
-WORKDIR /usr/src/app
+RUN apt-get update \
+  && apt-get install -y gconf-service libgbm-dev libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
 
-COPY package*.json ./
+WORKDIR /api-zap/
 
-RUN npm install glob rimraf
+COPY package.json package-lock.json /api-zap/
 
-RUN npm install --only=development
-
+RUN npm ci --silent
 RUN npx prisma generate
 
 COPY . .
 
-RUN npm run build
+USER node
 
-FROM node:16.14.2-alpine as production
-
-ARG NODE_ENV=production
-ENV NODE_ENV=${NODE_ENV}
-
-WORKDIR /usr/src/app
-
-COPY package*.json ./
-
-RUN npm install --only=production
-
-COPY . .
-
-COPY --from=development /usr/src/app/dist ./dist
-
-CMD ["node", "dist/main"]
+CMD npm run start:dev
