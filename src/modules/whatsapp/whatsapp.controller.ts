@@ -4,6 +4,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Logger,
   OnModuleInit,
   Param,
   Post,
@@ -23,6 +24,7 @@ export class WhatsappController implements OnModuleInit {
     private qrCodeGateway: QrCodeGateway,
     private webhookService: WebHookService,
   ) {}
+  private logger: Logger = new Logger('WHATSAPP');
 
   async onModuleInit(): Promise<void> {
     await this.createInstance();
@@ -45,7 +47,7 @@ export class WhatsappController implements OnModuleInit {
     GlobalService.instancesWhatsapp = { client };
 
     client.on('qr', (qr) => {
-      console.log(qr);
+      this.logger.log('QR-CODE:', qr);
       const socketQrCode = GlobalService.instancesSocketQrCode;
 
       if (!socketQrCode) return null;
@@ -53,19 +55,19 @@ export class WhatsappController implements OnModuleInit {
     });
 
     client.on('authenticated', () => {
-      console.log('AUTHENTICATED');
+      this.logger.log('AUTHENTICATED');
       const socketQrCode = GlobalService.instancesSocketQrCode;
       this.qrCodeGateway.sendConnected(socketQrCode);
       GlobalService.instancesSocketQrCode = null;
     });
 
     client.on('disconnected', async (reason) => {
-      console.log(`Disconnected Whats: ${reason}`);
+      this.logger.log(`Disconnected Whats: ${reason}`);
       GlobalService.instancesWhatsapp = null;
     });
 
     client.on('ready', () => {
-      console.log('ready');
+      this.logger.log('ready');
     });
 
     client.on('message_ack', async (msg, ack) => {
@@ -78,13 +80,13 @@ export class WhatsappController implements OnModuleInit {
           existsMessageId.id,
           ack,
         );
-        console.log(`Updated From: ${response.destiny}`);
+        this.logger.log(`Updated From: ${response.destiny}`);
 
         if (!response.line.webhook_url) return;
 
         await this.webhookService.sendWebhook(response);
 
-        console.log(`Webhook Send: ${response.destiny}`);
+        this.logger.log(`Webhook Send: ${response.destiny}`);
       }
     });
 
@@ -116,7 +118,7 @@ export class WhatsappController implements OnModuleInit {
         if (!response.line.webhook_url) return;
         this.webhookService.sendWebhook(response);
 
-        return console.log(`Webhook Send: ${response.destiny}`);
+        return this.logger.log(`Webhook Send: ${response.destiny}`);
       }
 
       if (msg.selectedButtonId === 'second_option') {
@@ -129,7 +131,7 @@ export class WhatsappController implements OnModuleInit {
         if (!response.line.webhook_url) return;
         this.webhookService.sendWebhook(response);
 
-        return console.log(`Webhook Send: ${response.destiny}`);
+        return this.logger.log(`Webhook Send: ${response.destiny}`);
       }
     });
 
@@ -147,7 +149,7 @@ export class WhatsappController implements OnModuleInit {
 
     const response = await GlobalService.instancesWhatsapp.client.destroy();
     GlobalService.instancesWhatsapp = null;
-    console.log('destroyed', response);
+    this.logger.log('destroyed', response);
   }
   @Post('/logout')
   async logoutWhatsapp() {
@@ -164,7 +166,7 @@ export class WhatsappController implements OnModuleInit {
       );
 
     const response = await GlobalService.instancesWhatsapp.client.logout();
-    console.log('logout', response);
+    this.logger.log('logout', response);
   }
 
   @Post('/send/message')

@@ -1,10 +1,11 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Line, Message } from '@prisma/client';
 
 @Injectable()
 export class WebHookService {
   constructor(private readonly httpService: HttpService) {}
+  private logger: Logger = new Logger('WEBHOOK');
 
   async sendWebhook(data: Message & { line: Line }) {
     try {
@@ -20,7 +21,7 @@ export class WebHookService {
 
       return response;
     } catch (e) {
-      console.log(e);
+      this.logger.log(e);
     }
   }
 }
