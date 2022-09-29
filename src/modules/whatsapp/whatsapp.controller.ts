@@ -4,6 +4,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  OnModuleInit,
   Param,
   Post,
   Req,
@@ -16,12 +17,16 @@ import { QrCodeGateway } from 'src/qr-code.gateway';
 import { WebHookService } from '../../services/webhook/webhook.service';
 
 @Controller('whatsapp/v1')
-export class WhatsappController {
+export class WhatsappController implements OnModuleInit {
   constructor(
     private messageService: MessageService,
     private qrCodeGateway: QrCodeGateway,
     private webhookService: WebHookService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.createInstance();
+  }
 
   @Post('init')
   async createInstance() {
@@ -33,7 +38,7 @@ export class WhatsappController {
     const client = new Client({
       authStrategy: new LocalAuth({}),
       puppeteer: {
-        headless: true,
+        headless: false,
         args: ['--no-sandbox'],
       },
     });
@@ -54,7 +59,7 @@ export class WhatsappController {
       GlobalService.instancesSocketQrCode = null;
     });
 
-    client.on('disconnected', (reason) => {
+    client.on('disconnected', async (reason) => {
       console.log(`Disconnected Whats: ${reason}`);
       GlobalService.instancesWhatsapp = null;
     });
@@ -132,7 +137,7 @@ export class WhatsappController {
   }
 
   @Post('/destroy')
-  async clearInstance(@Body() body: { sessionId: string }) {
+  async clearInstance() {
     const status = await GlobalService?.instancesWhatsapp;
     if (!status)
       throw new HttpException(
@@ -143,6 +148,23 @@ export class WhatsappController {
     const response = await GlobalService.instancesWhatsapp.client.destroy();
     GlobalService.instancesWhatsapp = null;
     console.log('destroyed', response);
+  }
+  @Post('/logout')
+  async logoutWhatsapp() {
+    const status = await GlobalService?.instancesWhatsapp;
+    if (!status)
+      throw new HttpException('CLIENT NOT STARTED!', HttpStatus.BAD_REQUEST);
+
+    const statusClient =
+      await GlobalService?.instancesWhatsapp?.client.getState();
+    if (statusClient !== 'CONNECTED')
+      throw new HttpException(
+        'CLIENT ALREADY DISCONNECTED!',
+        HttpStatus.BAD_REQUEST,
+      );
+
+    const response = await GlobalService.instancesWhatsapp.client.logout();
+    console.log('logout', response);
   }
 
   @Post('/send/message')
@@ -243,6 +265,8 @@ export class WhatsappController {
       throw new HttpException('CLIENT DISCONNECTED!', HttpStatus.BAD_REQUEST);
 
     const response = await GlobalService?.instancesWhatsapp?.client.getState();
+
+    if (!response && status) return { status: 'CONNECTION ON GOING!' };
 
     return { status: response };
   }
